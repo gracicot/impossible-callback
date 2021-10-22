@@ -1,5 +1,5 @@
 Impossible Callback
 ===================
 
-100% meatless callback guaranteed!
+100% meatless callback!
 

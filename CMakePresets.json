@@ -1,0 +1,266 @@
+{
+	"version": 3,
+	"cmakeMinimumRequired": {
+		"major": 3,
+		"minor": 21,
+		"patch": 0
+	},
+	"configurePresets": [
+		{
+			"name": "base",
+			"hidden": true,
+			"displayName": "Default Config",
+			"description": "Default build using Ninja generator",
+			"generator": "Ninja Multi-Config",
+			"binaryDir": "${sourceDir}/build/",
+			"cacheVariables": {},
+			"environment": {}
+		},
+		{
+			"name": "windows-base",
+			"inherits": "base",
+			"hidden": true,
+			"architecture": {
+				"value": "x64",
+				"strategy": "external"
+			},
+			"displayName": "Windows base",
+			"description": "All common configurations needed on windows",
+			"condition": {
+				"type": "equals",
+				"lhs": "${hostSystemName}",
+				"rhs": "Windows"
+			}
+		},
+		{
+			"name": "unix-base",
+			"inherits": "base",
+			"hidden": true,
+			"displayName": "Windows base",
+			"description": "All common configurations needed on unix-like platforms",
+			"condition": {
+				"type": "notEquals",
+				"lhs": "${hostSystemName}",
+				"rhs": "Windows"
+			}
+		},
+		{
+			"name": "base-dev",
+			"hidden": true,
+			"cacheVariables": {
+				"CMAKE_INSTALL_PREFIX": "${sourceDir}/install",
+				"CMAKE_CXX_FLAGS_DEBUG": "-O0 -g -fsanitize=address",
+				"IMPOSSIBLE_CALLBACK_BUILD_TESTS": "On",
+				"IMPOSSIBLE_CALLBACK_BUILD_BENCHMARKS": "On",
+				"IMPOSSIBLE_CALLBACK_BUILD_EXAMPLES": "On"
+			}
+		},
+		{
+			"name": "dev-unix",
+			"hidden": false,
+			"inherits": [
+				"unix-base",
+				"base-dev"
+			],
+			"displayName": "Dev",
+			"description": "Development configuration (unix)",
+			"cacheVariables": {}
+		},
+		{
+			"name": "export-unix",
+			"hidden": false,
+			"inherits": "unix-base",
+			"displayName": "Export",
+			"description": "Exportation and installation configuration"
+		},
+		{
+			"name": "dev-windows",
+			"hidden": false,
+			"inherits": [
+				"windows-base",
+				"base-dev"
+			],
+			"displayName": "Dev",
+			"description": "Development configuration (windows)",
+			"cacheVariables": {}
+		},
+		{
+			"name": "export-windows",
+			"hidden": false,
+			"inherits": "windows-base",
+			"displayName": "Export",
+			"description": "Exportation and installation configuration"
+		}
+	],
+	"buildPresets": [
+		{
+			"name": "debug-dev-unix",
+			"displayName": "Debug (Dev)",
+			"configuration": "Debug",
+			"configurePreset": "dev-unix"
+		},
+		{
+			"name": "relwithdebinfo-dev-unix",
+			"displayName": "RelWithDebInfo (Dev)",
+			"configuration": "RelWithDebInfo",
+			"configurePreset": "dev-unix"
+		},
+		{
+			"name": "release-dev-unix",
+			"displayName": "Release (Dev)",
+			"configuration": "Release",
+			"configurePreset": "dev-unix"
+		},
+		{
+			"name": "debug-dev-windows",
+			"displayName": "Debug (Dev)",
+			"configuration": "Debug",
+			"configurePreset": "dev-windows"
+		},
+		{
+			"name": "relwithdebinfo-dev-windows",
+			"displayName": "RelWithDebInfo (Dev)",
+			"configuration": "RelWithDebInfo",
+			"configurePreset": "dev-windows"
+		},
+		{
+			"name": "release-dev-windows",
+			"displayName": "Release (Dev)",
+			"configuration": "Release",
+			"configurePreset": "dev-windows"
+		},
+		{
+			"name": "debug-export-unix",
+			"displayName": "Debug (Export)",
+			"configuration": "Debug",
+			"configurePreset": "export-unix"
+		},
+		{
+			"name": "relwithdebinfo-export-unix",
+			"displayName": "RelWithDebInfo (Export)",
+			"configuration": "RelWithDebInfo",
+			"configurePreset": "export-unix"
+		},
+		{
+			"name": "release-export-unix",
+			"displayName": "Release (Export)",
+			"configuration": "Release",
+			"configurePreset": "export-unix"
+		},
+		{
+			"name": "debug-export-windows",
+			"displayName": "Debug (Export)",
+			"configuration": "Debug",
+			"configurePreset": "export-windows"
+		},
+		{
+			"name": "relwithdebinfo-export-windows",
+			"displayName": "RelWithDebInfo (Export)",
+			"configuration": "RelWithDebInfo",
+			"configurePreset": "export-windows"
+		},
+		{
+			"name": "release-export-windows",
+			"displayName": "Release (Export)",
+			"configuration": "Release",
+			"configurePreset": "export-windows"
+		}
+	],
+	"testPresets": [
+		{
+			"name": "base-test",
+			"hidden": true,
+			"output": {
+				"outputOnFailure": true
+			},
+			"execution": {
+				"noTestsAction": "error",
+				"stopOnFailure": true
+			}
+		},
+		{
+			"name": "debug-dev-unix",
+			"displayName": "Debug (Dev)",
+			"configuration": "Debug",
+			"configurePreset": "dev-unix",
+			"inherits": "base-test"
+		},
+		{
+			"name": "relwithdebinfo-dev-unix",
+			"displayName": "RelWithDebInfo (Dev)",
+			"configuration": "RelWithDebInfo",
+			"configurePreset": "dev-unix",
+			"inherits": "base-test"
+		},
+		{
+			"name": "release-dev-unix",
+			"displayName": "Release (Dev)",
+			"configuration": "Release",
+			"configurePreset": "dev-unix",
+			"inherits": "base-test"
+		},
+		{
+			"name": "debug-dev-windows",
+			"displayName": "Debug (Dev)",
+			"configuration": "Debug",
+			"configurePreset": "dev-windows",
+			"inherits": "base-test"
+		},
+		{
+			"name": "relwithdebinfo-dev-windows",
+			"displayName": "RelWithDebInfo (Dev)",
+			"configuration": "RelWithDebInfo",
+			"configurePreset": "dev-windows",
+			"inherits": "base-test"
+		},
+		{
+			"name": "release-dev-windows",
+			"displayName": "Release (Dev)",
+			"configuration": "Release",
+			"configurePreset": "dev-windows",
+			"inherits": "base-test"
+		},
+		{
+			"name": "debug-export-unix",
+			"displayName": "Debug (Export)",
+			"configuration": "Debug",
+			"configurePreset": "export-unix",
+			"inherits": "base-test"
+		},
+		{
+			"name": "relwithdebinfo-export-unix",
+			"displayName": "RelWithDebInfo (Export)",
+			"configuration": "RelWithDebInfo",
+			"configurePreset": "export-unix",
+			"inherits": "base-test"
+		},
+		{
+			"name": "release-export-unix",
+			"displayName": "Release (Export)",
+			"configuration": "Release",
+			"configurePreset": "export-unix",
+			"inherits": "base-test"
+		},
+		{
+			"name": "debug-export-windows",
+			"displayName": "Debug (Export)",
+			"configuration": "Debug",
+			"configurePreset": "export-windows",
+			"inherits": "base-test"
+		},
+		{
+			"name": "relwithdebinfo-export-windows",
+			"displayName": "RelWithDebInfo (Export)",
+			"configuration": "RelWithDebInfo",
+			"configurePreset": "export-windows",
+			"inherits": "base-test"
+		},
+		{
+			"name": "release-export-windows",
+			"displayName": "Release (Export)",
+			"configuration": "Release",
+			"configurePreset": "export-windows",
+			"inherits": "base-test"
+		}
+	]
+}

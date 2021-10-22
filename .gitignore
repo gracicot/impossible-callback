@@ -1,0 +1,8 @@
+.*
+!.gitignore
+!.editorconfig
+!.gitattributes
+CMakeUserPresets.json
+build
+build-*
+install/
