@@ -2,7 +2,7 @@
 	"version": 3,
 	"cmakeMinimumRequired": {
 		"major": 3,
-		"minor": 21,
+		"minor": 20,
 		"patch": 0
 	},
 	"configurePresets": [
@@ -49,7 +49,6 @@
 			"hidden": true,
 			"cacheVariables": {
 				"CMAKE_INSTALL_PREFIX": "${sourceDir}/install",
-				"CMAKE_CXX_FLAGS_DEBUG": "-O0 -g -fsanitize=address",
 				"IMPOSSIBLE_CALLBACK_BUILD_TESTS": "On",
 				"IMPOSSIBLE_CALLBACK_BUILD_BENCHMARKS": "On",
 				"IMPOSSIBLE_CALLBACK_BUILD_EXAMPLES": "On"

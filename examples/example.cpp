@@ -2,39 +2,23 @@
 
 #include <cstdio>
 
-struct C {
-	char c = 'c';
-};
-
-struct B {
-	char b = 'b';
-
-	virtual void function() {
-		std::printf("from B %p: %c\n", this, b);
-	}
-};
-
-struct A : C, virtual B {
+struct A {
 	char a = 'a';
 
-	void function() override {
+	void function() {
 		std::printf("from A %p: %c\n", this, a);
 	}
 };
 
 int main() {
 	A a;
-	// prints "Expects 0x7ffdbf172b2f"
-	std::printf("Expects %p\n", static_cast<B*>(&a));
-	auto [object, function] = ic::impossible_callback(&a, &B::function);
 
-	// object is an impossible_object pointer
-	static_assert(std::is_same_v<decltype(object), ic::impossible_object*>);
+	// Print the address of a, for good mesure.
+	std::printf("Address of a: %p\n", &a);
 
-	// type of function is a function pointer that takes an impossible_object
-	static_assert(std::is_same_v<decltype(function), void(*)(ic::impossible_object*)>);
+	// Get a `impossible_object*` and a `impossible_function<void>`
+	auto [object, function] = impossible_callback::impossible_callback(&a, &A::function);
 
-	// Call member function through normal function pointer!
-	function(object);
-	return 0;
+	// Call member function through normal function pointer, just as if a.function(). (not on msvc, more on that later)
+	std::invoke(function, object);
 }
