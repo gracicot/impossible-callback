@@ -63,6 +63,7 @@ namespace impossible_callback {
 
 		template<typename F>
 		using impossible_function_pointer_t = typename impossible_function_pointer<F>::type;
+
 		enum struct qualifier : std::uint8_t {
 			no_qualifier =            0b000,
 			only_const =              0b001,
