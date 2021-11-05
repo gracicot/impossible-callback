@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <cstring> // memcpy
+#include <memory> // addressof
 #include <type_traits>
 #include <utility>
 
@@ -104,7 +105,7 @@ namespace impossible_callback {
 				T
 			>
 		>;
-		
+
 		template<qualifier q>
 		using qualified_impossible_object_type = apply_qualifiers_on<impossible_object, q>;
 

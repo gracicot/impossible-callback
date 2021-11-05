@@ -1,5 +1,6 @@
 #include <impossible-callback/impossible-callback.hpp>
 
+#include <functional>
 #include <cstdio>
 
 struct A {

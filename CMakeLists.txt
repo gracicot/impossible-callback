@@ -14,6 +14,10 @@ if(IMPOSSIBLE_CALLBACK_BUILD_EXAMPLES)
 	add_subdirectory(examples)
 endif()
 
+if(IMPOSSIBLE_CALLBACK_BUILD_BENCHMARKS)
+	add_subdirectory(benchmarks)
+endif()
+
 add_library(impossible-callback INTERFACE)
 add_library(impossible-callback::impossible-callback ALIAS impossible-callback)
 
