@@ -7,6 +7,14 @@
 #include <type_traits>
 #include <utility>
 
+#ifdef _MSV_VER
+    #define IMPOSSIBLE_CALLBACK_INLINE inline __forceinline
+#elif defined(__GNUC__) || defined(__clang__)
+    #define IMPOSSIBLE_CALLBACK_INLINE inline __attribute__((always_inline))
+#else
+    #define IMPOSSIBLE_CALLBACK_INLINE inline
+#endif
+
 namespace impossible_callback {
 	struct impossible_object {};
 
@@ -14,9 +22,10 @@ namespace impossible_callback {
 	struct drop_cv_noexcept_t {} inline constexpr drop_cv_noexcept{};
 	struct enforce_noexcept_t {} inline constexpr enforce_noexcept{};
 	struct drop_cv_enforce_noexcept_t {} inline constexpr drop_cv_enforce_noexcept;
+	struct as_const_t {} inline constexpr as_const{};
 
 	namespace detail {
-		constexpr auto is_itanium() -> bool {
+		inline constexpr auto is_itanium() -> bool {
 			return
 				#ifdef _MSC_VER
 					false;
@@ -76,19 +85,19 @@ namespace impossible_callback {
 			const_volatile_noexcept = only_const | only_volatile | only_noexcept
 		};
 
-		constexpr auto operator|(qualifier lhs, qualifier rhs) -> qualifier {
+		inline constexpr auto operator|(qualifier lhs, qualifier rhs) -> qualifier {
 			return static_cast<qualifier>(static_cast<std::uint8_t>(lhs) | static_cast<std::uint8_t>(rhs));
 		}
 
-		constexpr auto operator&(qualifier lhs, qualifier rhs) -> qualifier {
+		inline constexpr auto operator&(qualifier lhs, qualifier rhs) -> qualifier {
 			return static_cast<qualifier>(static_cast<std::uint8_t>(lhs) & static_cast<std::uint8_t>(rhs));
 		}
 
-		constexpr auto operator^(qualifier lhs, qualifier rhs) -> qualifier {
+		inline constexpr auto operator^(qualifier lhs, qualifier rhs) -> qualifier {
 			return static_cast<qualifier>(static_cast<std::uint8_t>(lhs) ^ static_cast<std::uint8_t>(rhs));
 		}
 
-		constexpr auto operator~(qualifier q) -> qualifier {
+		inline constexpr auto operator~(qualifier q) -> qualifier {
 			return static_cast<qualifier>(~static_cast<std::uint8_t>(q) & 0b111u);
 		}
 
@@ -126,7 +135,7 @@ namespace impossible_callback {
 		};
 
 		template<typename F>
-		struct member_function_traits;
+		struct member_function_traits {};
 
 		template <typename Type, typename R, typename... Args>
 		struct member_function_traits<R(Type::*)(Args...)> : base_member_function_traits<qualifier::no_qualifier, Type, R, Args...> {};
@@ -175,6 +184,23 @@ namespace impossible_callback {
 
 		template <typename Type, typename R, typename... Args>
 		struct member_function_traits<R(Type::*)(Args...) const volatile& noexcept> : base_member_function_traits<qualifier::const_volatile_noexcept, Type, R, Args...> {};
+
+		template<typename, typename...>
+		struct free_function_traits {};
+
+		template<typename R, typename... Args>
+		struct free_function_traits<R(*)(Args...)> {
+			static constexpr auto qualifiers = qualifier::no_qualifier;
+			using return_type = R;
+			using arguments_type = metalist<Args...>;
+		};
+
+		template<typename R, typename... Args>
+		struct free_function_traits<R(*)(Args...) noexcept> {
+			static constexpr auto qualifiers = qualifier::only_noexcept;
+			using return_type = R;
+			using arguments_type = metalist<Args...>;
+		};
 
 		template<typename F>
 		using return_type_of = typename member_function_traits<F>::return_type;
@@ -259,7 +285,7 @@ namespace impossible_callback {
 		using vtable_pointer_t = std::uintptr_t*;
 
 		template<typename T>
-		auto get_function_representation(T mfptr) {
+		IMPOSSIBLE_CALLBACK_INLINE auto get_function_representation(T mfptr) {
 			using representation = respresentation_for<T>;
 			static_assert(not std::is_same_v<representation, no_representation>, "Unknown representation");
 
@@ -270,13 +296,13 @@ namespace impossible_callback {
 		}
 
 		template<typename T>
-		auto apply_offset(T* object, std::uintptr_t offset) -> std::uintptr_t {
+		IMPOSSIBLE_CALLBACK_INLINE auto apply_offset(T* object, std::uintptr_t offset) -> std::uintptr_t {
 			std::uintptr_t result; // uninitialized
 			std::memcpy(std::addressof(result), std::addressof(object), sizeof(object));
 			return result + offset;
 		}
 
-		inline auto get_from_vtable(std::uintptr_t object, std::uintptr_t offset) -> std::uintptr_t {
+		IMPOSSIBLE_CALLBACK_INLINE auto get_from_vtable(std::uintptr_t object, std::uintptr_t offset) -> std::uintptr_t {
 			vtable_pointer_t* vtable; // uninitialized
 			std::memcpy(std::addressof(vtable), std::addressof(object), sizeof(vtable));
 			auto const vtable_pointer = *vtable;
@@ -284,7 +310,7 @@ namespace impossible_callback {
 		}
 
 		template<typename R, typename O, typename T>
-		auto impossible_cast(O* object, T mfptr) -> R {
+		IMPOSSIBLE_CALLBACK_INLINE auto impossible_cast(O* object, T mfptr) -> R {
 			auto const mfptr_rep = get_function_representation(mfptr);
 
 			if constexpr (std::is_same_v<decltype(mfptr_rep), gcc_representation const>) {
@@ -310,6 +336,36 @@ namespace impossible_callback {
 			} else {
 				static_assert(std::is_same_v<T, T>, "Unknown representation");
 			}
+		}
+
+		template <typename T>
+		struct impossible_free_function;
+
+		template<typename R, typename... Args>
+		struct impossible_free_function<R(Args...)> : impossible_object {
+			inline auto call(Args... args) const -> R {
+				using fptr = auto(*)(Args...) -> R;
+				auto f = fptr{};
+				auto const self = this;
+				std::memcpy(std::addressof(f), std::addressof(self), sizeof(f));
+				return f(std::forward<Args>(args)...);
+			}
+		};
+
+		template<typename R, typename... Args>
+		struct impossible_free_function<R(Args...) noexcept> : impossible_object {
+			inline auto call(Args... args) const noexcept -> R {
+				using fptr = auto(*)(Args...) -> R;
+				auto f = fptr{};
+				auto const self = this;
+				std::memcpy(std::addressof(f), std::addressof(self), sizeof(f));
+				return f(std::forward<Args>(args)...);
+			}
+		};
+
+		template<typename R, typename T>
+		IMPOSSIBLE_CALLBACK_INLINE auto impossible_cast(T* fptr) -> R {
+			return impossible_cast<R>(fptr, &impossible_free_function<T>::call);
 		}
 
 		template<typename F>
@@ -343,36 +399,47 @@ namespace impossible_callback {
 	template<typename R, typename... Args>
 	using impossible_function_const_volatile_noexcept = detail::qualified_impossible_function_type<detail::qualifier::const_volatile_noexcept, R, Args...>;
 
-	template<typename O, typename F>
-	inline auto impossible_callback(O* object, F function) -> detail::impossible_result_for<F> {
+	template<typename O, typename F, std::enable_if_t<std::is_member_function_pointer_v<F>, int> = 0>
+	IMPOSSIBLE_CALLBACK_INLINE auto impossible_callback(O* object, F function) -> detail::impossible_result_for<F> {
 		using result_type = detail::impossible_result_for<F>;
 		return detail::impossible_cast<result_type>(static_cast<detail::object_type_of<F>*>(object), function);
 	}
 
 	template<typename O, typename F>
-	inline auto impossible_callback(O* object, F function, drop_cv_t) -> detail::impossible_result_for<F, detail::qualifiers_of<F> & detail::qualifier::only_noexcept> {
+	IMPOSSIBLE_CALLBACK_INLINE auto impossible_callback(O* object, F function, drop_cv_t) -> detail::impossible_result_for<F, detail::qualifiers_of<F> & detail::qualifier::only_noexcept> {
 		using result_type = detail::impossible_result_for<F, detail::qualifiers_of<F> & detail::qualifier::only_noexcept>;
 		return detail::impossible_cast<result_type>(static_cast<detail::object_type_of<F>*>(object), function);
 	}
 
 	template<typename O, typename F>
-	inline auto impossible_callback(O* object, F function, drop_cv_noexcept_t) -> detail::impossible_result_for<F, detail::qualifier::no_qualifier> {
+	IMPOSSIBLE_CALLBACK_INLINE auto impossible_callback(O* object, F function, drop_cv_noexcept_t) -> detail::impossible_result_for<F, detail::qualifier::no_qualifier> {
 		using result_type = detail::impossible_result_for<F, detail::qualifier::no_qualifier>;
 		return detail::impossible_cast<result_type>(static_cast<detail::object_type_of<F>*>(object), function);
 	}
 
 	template<typename O, typename F>
-	inline auto impossible_callback(O* object, F function, detail::enforce_noexcept_condition_t<F>) -> detail::impossible_result_for<F> {
+	IMPOSSIBLE_CALLBACK_INLINE auto impossible_callback(O* object, F function, detail::enforce_noexcept_condition_t<F>) -> detail::impossible_result_for<F> {
 		using result_type = detail::impossible_result_for<F>;
 		return detail::impossible_cast<result_type>(static_cast<detail::object_type_of<F>*>(object), function);
 	}
 
 	template<typename O, typename F>
-	inline auto impossible_callback(O* object, F function, detail::drop_cv_enforce_noexcept_condition_t<F>) -> detail::impossible_result_for<F, detail::qualifier::only_noexcept> {
+	IMPOSSIBLE_CALLBACK_INLINE auto impossible_callback(O* object, F function, detail::drop_cv_enforce_noexcept_condition_t<F>) -> detail::impossible_result_for<F, detail::qualifier::only_noexcept> {
 		using result_type = detail::impossible_result_for<F, detail::qualifier::only_noexcept>;
 		return detail::impossible_cast<result_type>(static_cast<detail::object_type_of<F>*>(object), function);
 	}
 
+	template<typename F>
+	IMPOSSIBLE_CALLBACK_INLINE auto impossible_callback(F function) -> detail::impossible_result<detail::free_function_traits<F>::qualifiers, typename detail::free_function_traits<F>::return_type, typename detail::free_function_traits<F>::arguments_type> {
+		using result_type = detail::impossible_result<detail::free_function_traits<F>::qualifiers, typename detail::free_function_traits<F>::return_type, typename detail::free_function_traits<F>::arguments_type>;
+		return detail::impossible_cast<result_type>(function);
+	}
+
+	template<typename F>
+	IMPOSSIBLE_CALLBACK_INLINE auto impossible_callback(F function, as_const_t) -> detail::impossible_result<detail::free_function_traits<F>::qualifiers | detail::qualifier::only_const, typename detail::free_function_traits<F>::return_type, typename detail::free_function_traits<F>::arguments_type> {
+		using result_type = detail::impossible_result<detail::free_function_traits<F>::qualifiers | detail::qualifier::only_const, typename detail::free_function_traits<F>::return_type, typename detail::free_function_traits<F>::arguments_type>;
+		return detail::impossible_cast<result_type>(function);
+	}
 } // namespace impossible_callback
 
 #endif // IMPOSSIBLE_CALLBACK_HPP
